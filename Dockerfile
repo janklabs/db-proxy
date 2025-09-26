@@ -12,6 +12,6 @@ RUN npm run build
 
 FROM node:22-alpine
 
-COPY --from=build /src/apps/db-proxy/db-proxy.cjs /app/db-proxy.cjs
+COPY --from=build /src/db-proxy.cjs /app/db-proxy.cjs
 
 ENTRYPOINT ["node", "/app/db-proxy.cjs"]

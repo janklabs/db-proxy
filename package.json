@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npx esbuild index.ts --bundle --platform=node --outfile=db-proxy.cjs",
+    "build": "npx esbuild index.ts --bundle --platform=node --outfile=db-proxy.cjs --loader:.html=text",
+    "format:check": "npx prettier --check .",
+    "format:write": "npx prettier --write .",
     "start": "node db-proxy.cjs"
   },
   "dependencies": {
@@ -18,6 +20,7 @@
     "@types/pg": "^8.15.5",
     "esbuild": "^0.25.10",
     "prettier": "^3.6.2",
-    "prettier-package-json": "^2.8.0"
+    "prettier-package-json": "^2.8.0",
+    "prettier-plugin-tailwindcss": "^0.7.2"
   }
 }

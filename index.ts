@@ -1,3 +1,4 @@
+import indexHtml from "./index.html"
 import { serve } from "@hono/node-server"
 import { Hono } from "hono"
 import { Client } from "pg"
@@ -19,6 +20,10 @@ const client = new Client(DATABASE_URL)
 
 async function main() {
   await client.connect()
+
+  app.get("/", (c) => {
+    return c.html(indexHtml)
+  })
 
   app.post("/query", async (c) => {
     const key = c.req.header("Authorization")

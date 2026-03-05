@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>db-proxy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body
+    class="flex min-h-screen items-center justify-center bg-neutral-950 font-mono text-neutral-300"
+  >
+    <div class="w-full max-w-md px-6">
+      <h1 class="text-2xl font-bold text-white">db-proxy</h1>
+      <p class="mt-2 text-sm text-neutral-500">
+        This is an HTTP proxy for PostgreSQL, built for edge runtimes that can't
+        open direct database connections. Refer to
+        <a
+          href="https://github.com/guneet-xyz/db-proxy"
+          class="text-neutral-400 underline underline-offset-2 hover:text-white"
+          >GitHub</a
+        >
+        for more.
+      </p>
+
+      <div class="mt-8">
+        <h2
+          class="mb-3 text-xs font-semibold tracking-widest text-neutral-500 uppercase"
+        >
+          Endpoint
+        </h2>
+        <div class="rounded-lg border border-neutral-800 bg-neutral-900 p-5">
+          <p>
+            <span class="font-bold text-green-500">POST</span>
+            <span class="text-white">/query</span>
+          </p>
+          <table class="mt-3 w-full text-sm">
+            <tr>
+              <td class="py-0.5 pr-3 align-top text-neutral-500">Auth</td>
+              <td class="py-0.5">Authorization: Bearer &lt;TOKEN&gt;</td>
+            </tr>
+            <tr>
+              <td class="py-0.5 pr-3 align-top text-neutral-500">Body</td>
+              <td class="py-0.5">
+                { "sql": string, "params": any[], "method": "all" | "execute" }
+              </td>
+            </tr>
+            <tr>
+              <td class="py-0.5 pr-3 align-top text-neutral-500">all</td>
+              <td class="py-0.5">Returns rows as arrays</td>
+            </tr>
+            <tr>
+              <td class="py-0.5 pr-3 align-top text-neutral-500">execute</td>
+              <td class="py-0.5">Returns rows as objects</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

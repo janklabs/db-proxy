@@ -4,10 +4,11 @@ export default {
   plugins: [
     "prettier-package-json",
     "@trivago/prettier-plugin-sort-imports",
+    "prettier-plugin-tailwindcss",
   ],
   semi: false,
 
   // Configuration for @trivago/prettier-plugin-sort-import
   importOrderSeparation: true,
   importOrderSortSpecifiers: true,
-};
+}

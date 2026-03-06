@@ -30,6 +30,14 @@ npm start
 
 ### Docker
 
+A pre-built image is available on Docker Hub at [`kvqn/db-proxy`](https://hub.docker.com/r/kvqn/db-proxy):
+
+```sh
+docker run -e DATABASE_URL="postgresql://user:pass@host:5432/db" -e TOKEN="secret" -p 80:80 kvqn/db-proxy
+```
+
+Or build it yourself:
+
 ```sh
 docker build -t db-proxy .
 docker run -e DATABASE_URL="postgresql://user:pass@host:5432/db" -e TOKEN="secret" -p 80:80 db-proxy

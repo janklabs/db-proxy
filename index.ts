@@ -1,3 +1,4 @@
+import { env } from "./env"
 import indexHtml from "./index.html"
 import { serve } from "@hono/node-server"
 import { Hono } from "hono"
@@ -5,29 +6,7 @@ import { Client } from "pg"
 
 const PORT = 80
 
-const DATABASE_HOST = process.env.DATABASE_HOST
-if (!DATABASE_HOST) {
-  throw new Error("DATABASE_HOST is not defined")
-}
-
-const DATABASE_USERNAME = process.env.DATABASE_USERNAME
-if (!DATABASE_USERNAME) {
-  throw new Error("DATABASE_USERNAME is not defined")
-}
-
-const DATABASE_PASSWORD = process.env.DATABASE_PASSWORD
-if (!DATABASE_PASSWORD) {
-  throw new Error("DATABASE_PASSWORD is not defined")
-}
-
-const DATABASE_DB = process.env.DATABASE_DB
-
-const TOKEN = process.env.TOKEN
-if (!TOKEN) {
-  throw new Error("TOKEN is not defined")
-}
-
-const [dbHost, dbPortStr] = DATABASE_HOST.split(":")
+const [dbHost, dbPortStr] = env.DATABASE_HOST.split(":")
 const dbPort = dbPortStr ? parseInt(dbPortStr) : 5432
 
 const clients = new Map<string, Client>()
@@ -39,8 +18,8 @@ async function getClient(database: string): Promise<Client> {
   const client = new Client({
     host: dbHost,
     port: dbPort,
-    user: DATABASE_USERNAME,
-    password: DATABASE_PASSWORD,
+    user: env.DATABASE_USERNAME,
+    password: env.DATABASE_PASSWORD,
     database: database,
   })
 
@@ -58,13 +37,13 @@ async function main() {
 
   app.post("/query", async (c) => {
     const key = c.req.header("Authorization")
-    if (key !== `Bearer ${TOKEN}`) {
+    if (key !== `Bearer ${env.TOKEN}`) {
       return c.json({ error: "Unauthorized" }, 401)
     }
 
     const { sql, params, method, database: queryDb } = await c.req.json()
 
-    const database = DATABASE_DB ?? queryDb
+    const database = env.DATABASE_DB ?? queryDb
     if (!database) {
       return c.json({ error: "database is required" }, 400)
     }

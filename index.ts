@@ -5,22 +5,53 @@ import { Client } from "pg"
 
 const PORT = 80
 
-const DATABASE_URL = process.env.DATABASE_URL
-if (!DATABASE_URL) {
-  throw new Error("DATABASE_URL is not defined")
+const DATABASE_HOST = process.env.DATABASE_HOST
+if (!DATABASE_HOST) {
+  throw new Error("DATABASE_HOST is not defined")
 }
+
+const DATABASE_USERNAME = process.env.DATABASE_USERNAME
+if (!DATABASE_USERNAME) {
+  throw new Error("DATABASE_USERNAME is not defined")
+}
+
+const DATABASE_PASSWORD = process.env.DATABASE_PASSWORD
+if (!DATABASE_PASSWORD) {
+  throw new Error("DATABASE_PASSWORD is not defined")
+}
+
+const DATABASE_DB = process.env.DATABASE_DB
 
 const TOKEN = process.env.TOKEN
 if (!TOKEN) {
   throw new Error("TOKEN is not defined")
 }
 
+const [dbHost, dbPortStr] = DATABASE_HOST.split(":")
+const dbPort = dbPortStr ? parseInt(dbPortStr) : 5432
+
+const clients = new Map<string, Client>()
+
+async function getClient(database: string): Promise<Client> {
+  const existing = clients.get(database)
+  if (existing) return existing
+
+  const client = new Client({
+    host: dbHost,
+    port: dbPort,
+    user: DATABASE_USERNAME,
+    password: DATABASE_PASSWORD,
+    database: database,
+  })
+
+  await client.connect()
+  clients.set(database, client)
+  return client
+}
+
 const app = new Hono()
-const client = new Client(DATABASE_URL)
 
 async function main() {
-  await client.connect()
-
   app.get("/", (c) => {
     return c.html(indexHtml)
   })
@@ -31,12 +62,19 @@ async function main() {
       return c.json({ error: "Unauthorized" }, 401)
     }
 
-    const { sql, params, method } = await c.req.json()
+    const { sql, params, method, database: queryDb } = await c.req.json()
+
+    const database = DATABASE_DB ?? queryDb
+    if (!database) {
+      return c.json({ error: "database is required" }, 400)
+    }
 
     // prevent multiple queries
     const sqlBody = sql.replace(/;/g, "")
 
     try {
+      const client = await getClient(database)
+
       if (method === "all") {
         const result = await client.query({
           text: sqlBody,

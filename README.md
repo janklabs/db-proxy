@@ -14,10 +14,13 @@ npm install
 
 ### Environment variables
 
-| Variable       | Description                                |
-| -------------- | ------------------------------------------ |
-| `DATABASE_URL` | PostgreSQL connection string               |
-| `TOKEN`        | Bearer token used to authenticate requests |
+| Variable            | Description                                                                                              |
+| ------------------- | -------------------------------------------------------------------------------------------------------- |
+| `DATABASE_HOST`     | PostgreSQL host with optional port (e.g. `localhost` or `db.example.com:5432`)                           |
+| `DATABASE_USERNAME` | PostgreSQL username                                                                                      |
+| `DATABASE_PASSWORD` | PostgreSQL password                                                                                      |
+| `DATABASE_DB`       | _(Optional)_ Lock the proxy to a specific database. If set, `database` in the request body is not needed |
+| `TOKEN`             | Bearer token used to authenticate requests                                                               |
 
 ## Usage
 
@@ -33,14 +36,14 @@ npm start
 A pre-built image is available on Docker Hub at [`kvqn/db-proxy`](https://hub.docker.com/r/kvqn/db-proxy):
 
 ```sh
-docker run -e DATABASE_URL="postgresql://user:pass@host:5432/db" -e TOKEN="secret" -p 80:80 kvqn/db-proxy
+docker run -e DATABASE_HOST="host:5432" -e DATABASE_USERNAME="user" -e DATABASE_PASSWORD="pass" -e TOKEN="secret" -p 80:80 kvqn/db-proxy
 ```
 
 Or build it yourself:
 
 ```sh
 docker build -t db-proxy .
-docker run -e DATABASE_URL="postgresql://user:pass@host:5432/db" -e TOKEN="secret" -p 80:80 db-proxy
+docker run -e DATABASE_HOST="host:5432" -e DATABASE_USERNAME="user" -e DATABASE_PASSWORD="pass" -e TOKEN="secret" -p 80:80 db-proxy
 ```
 
 ### API
@@ -59,12 +62,14 @@ Body:
 {
   "sql": "SELECT * FROM users WHERE id = $1",
   "params": [1],
-  "method": "all"
+  "method": "all",
+  "database": "mydb"
 }
 ```
 
 - `method: "all"` -- returns rows as arrays (for Drizzle ORM's proxy driver)
 - `method: "execute"` -- returns rows as objects
+- `database` -- the target database name. Required unless `DATABASE_DB` is set as an environment variable.
 
 ### Drizzle ORM integration
 
@@ -78,7 +83,7 @@ const db = drizzle(async (sql, params, method) => {
       Authorization: "Bearer <TOKEN>",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ sql, params, method }),
+    body: JSON.stringify({ sql, params, method, database: "mydb" }),
   })
 
   const rows = await response.json()

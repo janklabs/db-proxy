@@ -119,7 +119,7 @@ async function main() {
     }
   })
 
-  logger.info({ port: PORT }, "Listening on port")
+  logger.info({ port: PORT, logLevel: env.LOG_LEVEL }, "Server started")
 
   serve({
     fetch: app.fetch,

@@ -14,13 +14,28 @@ npm install
 
 ### Environment variables
 
-| Variable            | Description                                                                                              |
-| ------------------- | -------------------------------------------------------------------------------------------------------- |
-| `DATABASE_HOST`     | PostgreSQL host with optional port (e.g. `localhost` or `db.example.com:5432`)                           |
-| `DATABASE_USERNAME` | PostgreSQL username                                                                                      |
-| `DATABASE_PASSWORD` | PostgreSQL password                                                                                      |
-| `DATABASE_DB`       | _(Optional)_ Lock the proxy to a specific database. If set, `database` in the request body is not needed |
-| `TOKEN`             | Bearer token used to authenticate requests                                                               |
+| Variable            | Description                                                                                              | Default |
+| ------------------- | -------------------------------------------------------------------------------------------------------- | ------- |
+| `DATABASE_HOST`     | PostgreSQL host with optional port (e.g. `localhost` or `db.example.com:5432`)                           |         |
+| `DATABASE_USERNAME` | PostgreSQL username                                                                                      |         |
+| `DATABASE_PASSWORD` | PostgreSQL password                                                                                      |         |
+| `DATABASE_DB`       | _(Optional)_ Lock the proxy to a specific database. If set, `database` in the request body is not needed |         |
+| `TOKEN`             | Bearer token used to authenticate requests                                                               |         |
+| `PORT`              | _(Optional)_ Port the server listens on                                                                  | `80`    |
+| `LOG_LEVEL`         | _(Optional)_ Logging verbosity: `debug`, `info`, `warn`, or `error` (case-insensitive)                   | `info`  |
+
+### Logging
+
+Structured JSON logging is powered by [pino](https://github.com/pinojs/pino). Set `LOG_LEVEL=debug` to see full details of every request, including SQL queries and response bodies:
+
+```jsonl
+{"level":20,"time":1717000000000,"requestBody":{"sql":"SELECT * FROM users","params":[],"method":"all","database":"mydb"},"msg":"POST /query request"}
+{"level":20,"time":1717000000001,"sql":"SELECT * FROM users","params":[],"method":"all","database":"mydb","msg":"Executing query"}
+{"level":20,"time":1717000000010,"rowCount":3,"responseBody":[[1,"alice"],[2,"bob"],[3,"charlie"]],"msg":"Query result"}
+{"level":20,"time":1717000000011,"method":"POST","path":"/query","status":200,"durationMs":12,"msg":"HTTP request"}
+```
+
+At the default `info` level, only server startup and new database connections are logged.
 
 ## Usage
 
@@ -37,6 +52,12 @@ A pre-built image is available on Docker Hub at [`kvqn/db-proxy`](https://hub.do
 
 ```sh
 docker run -e DATABASE_HOST="host:5432" -e DATABASE_USERNAME="user" -e DATABASE_PASSWORD="pass" -e TOKEN="secret" -p 80:80 kvqn/db-proxy
+```
+
+To run on a custom port with debug logging:
+
+```sh
+docker run -e DATABASE_HOST="host:5432" -e DATABASE_USERNAME="user" -e DATABASE_PASSWORD="pass" -e TOKEN="secret" -e PORT=3000 -e LOG_LEVEL=debug -p 3000:3000 kvqn/db-proxy
 ```
 
 Or build it yourself:

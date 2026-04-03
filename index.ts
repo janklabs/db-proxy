@@ -1,5 +1,6 @@
 import { env } from "./env"
 import indexHtml from "./index.html"
+import { logger } from "./logger"
 import { serve } from "@hono/node-server"
 import { Hono } from "hono"
 import { Client } from "pg"
@@ -24,6 +25,7 @@ async function getClient(database: string): Promise<Client> {
   })
 
   await client.connect()
+  logger.info({ database }, "New database connection established")
   clients.set(database, client)
   return client
 }
@@ -31,6 +33,23 @@ async function getClient(database: string): Promise<Client> {
 const app = new Hono()
 
 async function main() {
+  // Debug logging middleware for all requests
+  app.use("*", async (c, next) => {
+    const start = Date.now()
+    await next()
+    const durationMs = Date.now() - start
+
+    logger.debug(
+      {
+        method: c.req.method,
+        path: c.req.path,
+        status: c.res.status,
+        durationMs,
+      },
+      "HTTP request",
+    )
+  })
+
   app.get("/", (c) => {
     return c.html(indexHtml)
   })
@@ -41,7 +60,10 @@ async function main() {
       return c.json({ error: "Unauthorized" }, 401)
     }
 
-    const { sql, params, method, database: queryDb } = await c.req.json()
+    const body = await c.req.json()
+    const { sql, params, method, database: queryDb } = body
+
+    logger.debug({ requestBody: body }, "POST /query request")
 
     const database = env.DATABASE_DB ?? queryDb
     if (!database) {
@@ -54,13 +76,25 @@ async function main() {
     try {
       const client = await getClient(database)
 
+      logger.debug(
+        { sql: sqlBody, params, method, database },
+        "Executing query",
+      )
+
       if (method === "all") {
         const result = await client.query({
           text: sqlBody,
           values: params,
           rowMode: "array",
         })
-        return c.json(result.rows)
+        const responseBody = result.rows
+
+        logger.debug(
+          { rowCount: result.rowCount, responseBody },
+          "Query result",
+        )
+
+        return c.json(responseBody)
       }
 
       if (method === "execute") {
@@ -68,16 +102,24 @@ async function main() {
           text: sqlBody,
           values: params,
         })
-        return c.json(result.rows)
+        const responseBody = result.rows
+
+        logger.debug(
+          { rowCount: result.rowCount, responseBody },
+          "Query result",
+        )
+
+        return c.json(responseBody)
       }
 
       return c.json({ error: "Unknown method value" }, 500)
     } catch (e) {
+      logger.error({ err: e, sql: sqlBody, database }, "Query execution failed")
       return c.json({ error: "error" }, 500)
     }
   })
 
-  console.log(`Listening on port ${PORT}`)
+  logger.info({ port: PORT }, "Listening on port")
 
   serve({
     fetch: app.fetch,
@@ -86,6 +128,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e)
+  logger.error({ err: e }, "Fatal error during startup")
   process.exit(1)
 })

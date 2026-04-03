@@ -8,6 +8,11 @@ export const env = createEnv({
     DATABASE_PASSWORD: z.string(),
     DATABASE_DB: z.string().optional(),
     TOKEN: z.string(),
+    LOG_LEVEL: z
+      .string()
+      .default("info")
+      .transform((v) => v.toLowerCase())
+      .pipe(z.enum(["debug", "info", "warn", "error"])),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

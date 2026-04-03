@@ -5,7 +5,7 @@ import { serve } from "@hono/node-server"
 import { Hono } from "hono"
 import { Client } from "pg"
 
-const PORT = 80
+const PORT = env.PORT
 
 const [dbHost, dbPortStr] = env.DATABASE_HOST.split(":")
 const dbPort = dbPortStr ? parseInt(dbPortStr) : 5432

@@ -8,6 +8,7 @@ export const env = createEnv({
     DATABASE_PASSWORD: z.string(),
     DATABASE_DB: z.string().optional(),
     TOKEN: z.string(),
+    PORT: z.coerce.number().int().min(1).max(65535).default(80),
     LOG_LEVEL: z
       .string()
       .default("info")

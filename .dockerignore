@@ -1,0 +1,6 @@
+.git
+.github
+.sisyphus
+db-proxy.cjs
+node_modules
+npm-debug.log*

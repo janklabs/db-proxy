@@ -3,32 +3,30 @@ import indexHtml from "./index.html"
 import { logger } from "./logger"
 import { serve } from "@hono/node-server"
 import { Hono } from "hono"
-import { Client } from "pg"
+import { Pool } from "pg"
+import { z } from "zod"
 
 const PORT = env.PORT
 
-const [dbHost, dbPortStr] = env.DATABASE_HOST.split(":")
-const dbPort = dbPortStr ? parseInt(dbPortStr) : 5432
+const pool = new Pool({
+  connectionString: env.DATABASE_URL,
+  connectionTimeoutMillis: 5000,
+})
 
-const clients = new Map<string, Client>()
-
-async function getClient(database: string): Promise<Client> {
-  const existing = clients.get(database)
-  if (existing) return existing
-
-  const client = new Client({
-    host: dbHost,
-    port: dbPort,
-    user: env.DATABASE_USERNAME,
-    password: env.DATABASE_PASSWORD,
-    database: database,
-  })
-
-  await client.connect()
-  logger.info({ database }, "New database connection established")
-  clients.set(database, client)
-  return client
-}
+const querySchema = z.object({
+  sql: z.string(),
+  params: z
+    .array(z.unknown())
+    .nullish()
+    .transform((v) => v ?? []),
+  method: z.enum(["all", "execute"]),
+  database: z
+    .never({
+      message:
+        "The 'database' field is not accepted; this proxy is locked to a single database via DATABASE_URL",
+    })
+    .optional(),
+})
 
 const app = new Hono()
 
@@ -60,26 +58,26 @@ async function main() {
       return c.json({ error: "Unauthorized" }, 401)
     }
 
-    const body = await c.req.json()
-    const { sql, params, method, database: queryDb } = body
-
-    logger.debug({ requestBody: body }, "POST /query request")
-
-    const database = env.DATABASE_DB ?? queryDb
-    if (!database) {
-      return c.json({ error: "database is required" }, 400)
+    const rawBody = await c.req.json()
+    const parsed = querySchema.safeParse(rawBody)
+    if (!parsed.success) {
+      logger.debug(
+        { requestBody: rawBody, issues: parsed.error.issues },
+        "POST /query rejected: invalid body",
+      )
+      return c.json({ error: "Bad Request", issues: parsed.error.issues }, 400)
     }
+    const { sql, params, method } = parsed.data
+
+    logger.debug({ requestBody: parsed.data }, "POST /query request")
 
     // prevent multiple queries
     const sqlBody = sql.replace(/;/g, "")
 
     try {
-      const client = await getClient(database)
+      const client = pool
 
-      logger.debug(
-        { sql: sqlBody, params, method, database },
-        "Executing query",
-      )
+      logger.debug({ sql: sqlBody, params, method }, "Executing query")
 
       if (method === "all") {
         const result = await client.query({
@@ -111,10 +109,8 @@ async function main() {
 
         return c.json(responseBody)
       }
-
-      return c.json({ error: "Unknown method value" }, 500)
     } catch (e) {
-      logger.error({ err: e, sql: sqlBody, database }, "Query execution failed")
+      logger.error({ err: e, sql: sqlBody }, "Query execution failed")
       return c.json({ error: "error" }, 500)
     }
   })
@@ -125,6 +121,16 @@ async function main() {
     fetch: app.fetch,
     port: PORT,
   })
+
+  const shutdown = (signal: string) => {
+    logger.info({ signal }, "Shutting down")
+    pool
+      .end()
+      .then(() => process.exit(0))
+      .catch(() => process.exit(1))
+  }
+  process.on("SIGTERM", () => shutdown("SIGTERM"))
+  process.on("SIGINT", () => shutdown("SIGINT"))
 }
 
 main().catch((e) => {

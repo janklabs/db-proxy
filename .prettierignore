@@ -1,3 +1,5 @@
 .sisyphus
 db-proxy.cjs
 node_modules
+
+.omo
